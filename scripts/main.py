@@ -56,7 +56,7 @@ def main(args):
     transform_train = v2.Compose([v2.Resize((224, 224)),
                                   v2.RandomHorizontalFlip(p=0.5),
                                   v2.RandomRotation(degrees=15),
-                                  v2.RandomApply([v2.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+                                  v2.RandomApply([v2.ColorJitter(0.2, 0.2, 0.2, 0.1)], p=0.8),
                                   v2.ToImage(),
                                   v2.ToDtype(torch.float32, scale=True)
                                   ])

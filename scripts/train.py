@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 import wandb
 
 import os
@@ -11,6 +11,7 @@ from scripts.eval import evaluate
 
 def train(model, device, optimizer, scheduler, criterion, train_loader, val_loader, num_epochs, save_path):
     min_loss = np.Inf
+    patience = 0
 
     os.makedirs(save_path, exist_ok=True)
 
@@ -34,7 +35,7 @@ def train(model, device, optimizer, scheduler, criterion, train_loader, val_load
                 loss.backward()
                 optimizer.step()
 
-                if scheduler is not None and not isinstance(scheduler, ReduceLROnPlateau):
+                if scheduler is not None and not (isinstance(scheduler, ReduceLROnPlateau) or isinstance(scheduler, MultiStepLR)):
                     scheduler.step()
 
                 train_pred.extend(outputs.detach().cpu().numpy())
@@ -69,9 +70,17 @@ def train(model, device, optimizer, scheduler, criterion, train_loader, val_load
 
             min_loss = val_loss
             torch.save(model.state_dict(), f'{save_path}/best_model_ep_{epoch + 1}.pth')
+            patience = 0
+        else:
+            patience += 1
+            if patience >= num_epochs * 0.1:
+                print('Early stopping')
+                break
 
         if scheduler is not None and isinstance(scheduler, ReduceLROnPlateau):
             scheduler.step(val_loss)
+        elif scheduler is not None and isinstance(scheduler, MultiStepLR):
+            scheduler.step()
 
         wandb.log({'epoch': epoch + 1,
                    'eval/loss': val_loss,
